@@ -35,7 +35,8 @@ import {
   resolveIssuerSigningKey,
   createIssuerClient,
 } from "@/lib/issuer-service";
-import { resolveTenant, validateTenantCredentialTypes } from "@/lib/tenancy";
+import { validateTenantCredentialTypes } from "@/lib/tenancy";
+import { requireTenantAuth } from "../_middleware";
 
 const SIM_ACCOUNT =
   env.NEXT_PUBLIC_ISSUER_ADDRESS ?? "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
@@ -160,16 +161,17 @@ async function executeRequest(
     returnUrl?: string;
   };
 
-  const tenantRes = await resolveTenant(req);
-  if (tenantRes.error) {
+  // Authentication: the tenant (if any) behind this request's API key.
+  const tenantAuth = await requireTenantAuth(req);
+  if (tenantAuth.error) {
     if (idempotencyKey) {
-      idempotencyInFlightFail(idempotencyKey, new Error(tenantRes.error));
+      idempotencyInFlightFail(idempotencyKey, new Error(tenantAuth.error));
     }
-    const res = NextResponse.json({ error: tenantRes.error }, { status: tenantRes.status ?? 401 });
+    const res = NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status ?? 401 });
     res.headers.set("x-request-id", requestId);
     return res;
   }
-  const tenant = tenantRes.tenant;
+  const tenant = tenantAuth.tenant;
 
   const parsed = await readJsonBody<BodyType>(req);
   if (!parsed.ok) {
