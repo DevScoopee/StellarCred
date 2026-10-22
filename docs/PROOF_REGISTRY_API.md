@@ -134,7 +134,6 @@ fn is_nullifier_used(env: Env, app_context: BytesN<32>, nullifier: BytesN<32>) -
 - **Panics:** none.
 - **Events:** none.
 - **Notes:** Allows clients and verifiers to check if an identity proof has already been consumed for a given application context before submitting a transaction.
-
 ### `submit_proof_with_nullifier`
 
 ```rust
@@ -182,8 +181,8 @@ fn record_nullifier(env: Env, app_context: BytesN<32>, nullifier: BytesN<32>)
 - **Auth:** none (caller pays invocation fees).
 - **Stability:** Stable
 - **Parameters:**
-  - `app_context` — 32-byte application identifier context.
-  - `nullifier` — 32-byte unique nullifier hash.
+  - `app_context` — 32-byte application context identifier.
+  - `nullifier` — 32-byte unique-personhood nullifier hash.
 - **Returns:** —
 - **Panics:** `SubmissionsPaused (11)`, `NullifierAlreadyUsed (16)`.
 - **Events:** `("proof_reg", "nullifier")` → `EventNullifierUsed { app_context, nullifier, recorded_at }`.
@@ -330,23 +329,6 @@ fn check_delegated_verification(env, holder: Address, verifier: Address,
   gating on, not a confidentiality boundary).
 - **Panics:** none.
 - **Events:** none.
-
-### `is_nullifier_used`
-
-```rust
-fn is_nullifier_used(env: Env, app_context: BytesN<32>, nullifier: BytesN<32>) -> bool
-```
-
-- **Audience:** Integrator / Holder
-- **Auth:** none (public read).
-- **Stability:** Stable
-- **Parameters:**
-  - `app_context` — 32-byte application or action context identifier.
-  - `nullifier` — 32-byte unique-personhood nullifier hash.
-- **Returns:** `bool` — `true` if the nullifier has already been recorded for this application context, `false` otherwise.
-- **Panics:** never.
-- **Events:** none.
-- **Notes:** checks persistent storage for whether `(app_context, nullifier)` exists.
 
 ## 4. Delegated reads (Holder operations)
 
