@@ -349,7 +349,7 @@ async function executeBatchRequest(
           cachedIssuerKeyCheck.set(issuerId, false);
         } else {
           const localKey = localIssuerPubkeyBytes(customIssuerClient);
-          const matches = Buffer.from(registered).equals(localKey);
+          const matches = equals(registered, localKey);
           cachedIssuerKeyCheck.set(issuerId, matches);
         }
       }
