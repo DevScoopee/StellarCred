@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterAll } from "vitest";
+import { afterAll, describe, it, expect, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { createHmac } from "node:crypto";
 import { POST } from "../route";
