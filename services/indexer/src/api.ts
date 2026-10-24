@@ -1,5 +1,5 @@
-/**
- * api.ts — Read-only HTTP API for the indexer.
+﻿/**
+ * api.ts â€” Read-only HTTP API for the indexer.
  *
  * Security & Access Model:
  *   - CORS: Configurable origin allowlist (via CORS_ORIGIN / CORS_ALLOWED_ORIGINS).
@@ -19,46 +19,46 @@
  *       the same document with ready: false and an `error` message).
  *       See docs/HEALTHCHECKS.md for the full contract.
  *
- *   GET /claims?wallet=G…
- *     → { wallet: string, claims: SerializedClaim[] }
+ *   GET /claims?wallet=Gâ€¦
+ *     â†’ { wallet: string, claims: SerializedClaim[] }
  *
  *   GET /stats
- *     → { stats: StatsRow[] }
+ *     â†’ { stats: StatsRow[] }
  *
  *   GET /recent?limit=20&cursor=<opaque>
- *     → { claims: SerializedClaim[], limit: number, nextCursor: string | null }
+ *     â†’ { claims: SerializedClaim[], limit: number, nextCursor: string | null }
  *
  *   GET /issuers/:issuer/stats
- *     → { issuer, total, active, revoked, credential_types: string[], first_seen: number | null }
+ *     â†’ { issuer, total, active, revoked, credential_types: string[], first_seen: number | null }
  *
  *   GET /apps
- *     → { apps: AppSubmission[] }  (approved only)
+ *     â†’ { apps: AppSubmission[] }  (approved only)
  *
  *   GET /apps/:id
- *     → { app: AppSubmission }
+ *     â†’ { app: AppSubmission }
  *
  *   POST /apps/submit
  *     Body: { appName, description, requiredClaims, verifyUrl, contactEmail }
- *     → { id: number, status: "pending" }
+ *     â†’ { id: number, status: "pending" }
  *
  *   GET /integrity/status
- *     → on-chain verification metadata for #612: when the last pass ran,
+ *     â†’ on-chain verification metadata for #612: when the last pass ran,
  *       whether it read every sampled claim, and the most recent mismatches
  *
  *   POST /integrity/check[?sampleSize=25]
  *     Body: none
- *     → { checked, unreadable, mismatchCount, complete, durationSeconds,
+ *     â†’ { checked, unreadable, mismatchCount, complete, durationSeconds,
  *         mismatches }  (requires API_KEY when one is configured)
  *
  *   POST /webhooks/subscriptions
  *     Body: { url, wallet, claimType } (requires API_KEY + WEBHOOK_SIGNING_SECRET)
- *     → { id, wallet, claimType }
+ *     â†’ { id, wallet, claimType }
  *
- *   GET /webhooks/subscriptions[?wallet=G…]
+ *   GET /webhooks/subscriptions[?wallet=Gâ€¦]
  *   DELETE /webhooks/subscriptions/:id
  *   GET /webhooks/subscriptions/:id/deliveries
  *
- * /recent uses keyset (cursor) pagination ordered by (ledger_sequence, id) —
+ * /recent uses keyset (cursor) pagination ordered by (ledger_sequence, id) â€”
  * the `nextCursor` returned with each page is an opaque token that must be
  * passed back as `?cursor=` to fetch the next page. Unlike OFFSET pagination
  * this stays stable (no duplicate/skipped rows) while new claims are ingested
@@ -68,7 +68,7 @@
  * No identity fields are stored, so all data here is public chain data.
  *
  * SerializedClaim response schema (pinned by tests in api.test.ts, identical
- * across both DB_DRIVER backends — see serializeClaim below):
+ * across both DB_DRIVER backends â€” see serializeClaim below):
  *
  *   id               number   insertion cursor; the /recent tiebreaker
  *   wallet           string
@@ -78,7 +78,7 @@
  *   expiry           number   unix seconds
  *   ledger_sequence  number
  *   threshold        number | null
- *   revoked          number   0 or 1 — intentionally not a boolean; this is
+ *   revoked          number   0 or 1 â€” intentionally not a boolean; this is
  *                             the shape existing consumers (SDK/UI) already
  *                             code against, so it's pinned as-is rather than
  *                             changed to avoid a breaking wire-format change.
@@ -86,7 +86,7 @@
  *                             contract enforces expiry lazily in is_verified
  *                             and emits no expiry event, so this is computed
  *                             by the indexer from the indexed `expiry`
- *                             timestamp — see integrity.ts.
+ *                             timestamp â€” see integrity.ts.
  *   state            "active" | "expired" | "revoked"  DERIVED: revoked
  *                             wins, then locally-expired, then active.
  *
@@ -125,7 +125,7 @@ import {
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 20;
 
-/** Known StellarCred credential types — submissions must reference only these. */
+/** Known StellarCred credential types â€” submissions must reference only these. */
 const VALID_CLAIM_TYPES = new Set([
   "kyc",
   "age",
@@ -140,10 +140,10 @@ const MAX_APP_NAME = 120;
 const MAX_DESCRIPTION = 2000;
 const MAX_CLAIMS = 10;
 const MAX_CONTACT_EMAIL = 254;
-// ── Response schema (#349) ──────────────────────────────────────────────────
+// â”€â”€ Response schema (#349) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // `ClaimRow` (db.ts) is the internal row shape the two DB adapters happen to
-// hand back — on Postgres, `pg` parses BIGINT columns (id, verified_at,
+// hand back â€” on Postgres, `pg` parses BIGINT columns (id, verified_at,
 // expiry, ledger_sequence, threshold) as strings by default to avoid silent
 // precision loss, while better-sqlite3 hands back plain JS numbers for the
 // same INTEGER columns. Left unhandled, a consumer coding against one
@@ -163,12 +163,12 @@ export interface SerializedClaim {
   expiry: number;
   ledger_sequence: number;
   threshold: number | null;
-  /** 0 or 1 — see the module doc comment for why this isn't a boolean. */
+  /** 0 or 1 â€” see the module doc comment for why this isn't a boolean. */
   reason_code: string;
   revoked: number;
-  /** Derived, not event-sourced — see the module doc comment. */
+  /** Derived, not event-sourced â€” see the module doc comment. */
   expired: boolean;
-  /** Derived, not event-sourced — see the module doc comment. */
+  /** Derived, not event-sourced â€” see the module doc comment. */
   state: "active" | "expired" | "revoked";
 }
 
@@ -178,7 +178,7 @@ export interface SerializedClaim {
  *
  * It is an options object rather than a bare second parameter on purpose: this
  * is called as `claims.map(serializeClaim)`, and `map` hands the array *index*
- * to the second position — a bare `now` parameter would silently receive `0`.
+ * to the second position â€” a bare `now` parameter would silently receive `0`.
  */
 export function serializeClaim(
   row: ClaimRow,
@@ -201,8 +201,8 @@ export function serializeClaim(
   };
 }
 
-// ── Opaque cursor encoding ───────────────────────────────────────────────────
-// The nextCursor token is the base64url form of "<ledgerSequence>:<id>" — the
+// â”€â”€ Opaque cursor encoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// The nextCursor token is the base64url form of "<ledgerSequence>:<id>" â€” the
 // keyset boundary of the last row on the page. It is opaque to clients: they
 // must echo it back verbatim, never construct or interpret it.
 
@@ -256,13 +256,13 @@ export function buildApp(
     next();
   });
 
-  // ── CORS ─────────────────────────────────────────────────────────────────
+  // â”€â”€ CORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const corsOrigins =
     config?.corsOrigins ??
     parseCorsOrigins(process.env["CORS_ALLOWED_ORIGINS"] ?? process.env["CORS_ORIGIN"]);
   app.use(createCorsMiddleware(corsOrigins));
 
-  // ── Rate Limiting ────────────────────────────────────────────────────────
+  // â”€â”€ Rate Limiting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const windowMs =
     config?.rateLimitWindowMs ??
     Number(process.env["RATE_LIMIT_WINDOW_SECONDS"] ?? "60") * 1000;
@@ -281,9 +281,9 @@ export function buildApp(
   app.locals["rateLimiter"] = rateLimiter;
   app.use(rateLimiter.middleware());
 
-  // ── Auth guard ───────────────────────────────────────────────────────────
-  // requireAuth(undefined) → no-op; public mode, all endpoints open (default).
-  // requireAuth("secret")  → enforces Bearer / X-API-Key on guarded routes.
+  // â”€â”€ Auth guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // requireAuth(undefined) â†’ no-op; public mode, all endpoints open (default).
+  // requireAuth("secret")  â†’ enforces Bearer / X-API-Key on guarded routes.
   // Resolved from config first so tests can inject the key directly without
   // touching the environment.
   const envApiKey = process.env["API_KEY"]?.trim();
@@ -301,7 +301,7 @@ export function buildApp(
     guard(req, res, next);
   };
 
-  // ── GraphQL endpoint ─────────────────────────────────────────────────────
+  // â”€â”€ GraphQL endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Provides a flexible, typed query interface over the claims store.
   // Supports filtering by wallet, credential_type, issuer, active/revoked,
   // and time range, with cursor-based pagination.
@@ -348,7 +348,7 @@ export function buildApp(
     })
   );
 
-  // ── GET /metrics ──────────────────────────────────────────────────────────
+  // â”€â”€ GET /metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Exposes Prometheus metrics for the indexer.
   //   - indexer_events_processed_total: total events processed since start
   //   - indexer_fetch_errors_total: total fetch errors since start
@@ -411,7 +411,7 @@ export function buildApp(
       );
       lines.push(`indexer_ledgers_behind_head ${metrics.lag}`);
 
-      // ── On-chain data integrity (#612) ─────────────────────────────────────
+      // â”€â”€ On-chain data integrity (#612) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       // `indexer_state_mismatches` is the alerting series: it holds the number
       // of claims in the last completed check that disagreed with the
       // contract. It is a gauge, not a counter, so an alert can fire on "the
@@ -499,11 +499,11 @@ export function buildApp(
     })
   );
 
-  // ── GET /integrity/status ────────────────────────────────────────────────
+  // â”€â”€ GET /integrity/status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Operational metadata about the on-chain state verification routine (#612):
   // when it last ran, whether it read every sampled claim, and the most recent
-  // mismatches. Public like /health and /metrics — it reports indexer health,
-  // not wallet data — and omitted entirely when no checker is wired in.
+  // mismatches. Public like /health and /metrics â€” it reports indexer health,
+  // not wallet data â€” and omitted entirely when no checker is wired in.
   app.get(
     "/integrity/status",
     asyncHandler(async (_req, res) => {
@@ -530,7 +530,7 @@ export function buildApp(
     })
   );
 
-  // ── POST /integrity/check ────────────────────────────────────────────────
+  // â”€â”€ POST /integrity/check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // On-demand trigger for the same routine the schedule runs. Gated by API_KEY
   // like the other expensive operations: each call costs one RPC read per
   // sampled claim, and it moves the rotating sample cursor, so an unauthenticated
@@ -565,7 +565,7 @@ export function buildApp(
     })
   );
 
-  // ── GET /claims?wallet=G… ────────────────────────────────────────────────
+  // â”€â”€ GET /claims?wallet=Gâ€¦ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Gated when API_KEY is set: per-wallet claim history makes per-holder
   // correlation much easier than per-ledger chain queries.
   app.get(
@@ -585,7 +585,7 @@ export function buildApp(
     })
   );
 
-  // ── GET /stats ───────────────────────────────────────────────────────────
+  // â”€â”€ GET /stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Gated when API_KEY is set: reveals total verified-holder counts per type.
   app.get(
     "/stats",
@@ -596,7 +596,7 @@ export function buildApp(
     })
   );
 
-  // ── GET /recent?limit=20&cursor=<opaque> ──────────────────────────────────
+  // â”€â”€ GET /recent?limit=20&cursor=<opaque> â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   app.get(
     "/recent",
     guard,
@@ -606,7 +606,7 @@ export function buildApp(
         ? DEFAULT_LIMIT
         : Math.min(rawLimit, MAX_LIMIT);
 
-      // Cursor is optional — omit it (or pass cursor=) to start at the newest
+      // Cursor is optional â€” omit it (or pass cursor=) to start at the newest
       // claims. A malformed cursor is a client error, not silently page 1.
       const rawCursor = req.query["cursor"];
       let cursor: RecentCursor | null = null;
@@ -628,8 +628,8 @@ export function buildApp(
     })
   );
 
-  // ── GET /issuers/:issuer/stats ───────────────────────────────────────────
-  // Reputation stats derived entirely from indexed events (#398) — how many
+  // â”€â”€ GET /issuers/:issuer/stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Reputation stats derived entirely from indexed events (#398) â€” how many
   // credentials an issuer has issued, active vs revoked, which credential
   // types they cover, and how long they've been indexed. Public: this is the
   // same class of aggregate chain data /stats already exposes, just sliced
@@ -647,7 +647,7 @@ export function buildApp(
     })
   );
 
-  // ── GET /issuers/:issuer/credentials ──────────────────────────────────────
+  // â”€â”€ GET /issuers/:issuer/credentials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Returns all credentials issued by this issuer, for the revocation dashboard (#540).
   app.get(
     "/issuers/:issuer/credentials",
@@ -665,7 +665,7 @@ export function buildApp(
     })
   );
 
-  // ── GET /issuers/:issuer/analytics ────────────────────────────────────────
+  // â”€â”€ GET /issuers/:issuer/analytics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Verification volume over time, success rates, top verifiers, and exportable events (#542).
   app.get(
     "/issuers/:issuer/analytics",
@@ -680,7 +680,7 @@ export function buildApp(
     })
   );
 
-  // ── GET /credentials/:commitment/events ───────────────────────────────────
+  // â”€â”€ GET /credentials/:commitment/events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Returns on-chain lifecycle events for a specific credential commitment (#541).
   app.get(
     "/credentials/:commitment/events",
@@ -698,7 +698,7 @@ export function buildApp(
     })
   );
 
-  // ── GET /apps ────────────────────────────────────────────────────────────
+  // â”€â”€ GET /apps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Returns all approved app submissions for the gallery.
   app.get(
     "/apps",
@@ -708,7 +708,7 @@ export function buildApp(
     })
   );
 
-  // ── GET /apps/:id ────────────────────────────────────────────────────────
+  // â”€â”€ GET /apps/:id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   app.get(
     "/apps/:id",
     asyncHandler(async (req, res) => {
@@ -726,7 +726,7 @@ export function buildApp(
     })
   );
 
-  // ── POST /apps/submit ────────────────────────────────────────────────────
+  // â”€â”€ POST /apps/submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Third parties submit their app for review.
   app.use("/apps", express.json({ limit: "16kb" }));
   app.post(
@@ -810,7 +810,7 @@ export function buildApp(
     })
   );
 
-  // ── PATCH /apps/:id/status ───────────────────────────────────────────────
+  // â”€â”€ PATCH /apps/:id/status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Update submission review status (approved | rejected | pending).
   app.patch(
     "/apps/:id/status",
@@ -837,7 +837,7 @@ export function buildApp(
     })
   );
 
-  // ── Webhook subscriptions (#635) ────────────────────────────────────────
+  // â”€â”€ Webhook subscriptions (#635) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   app.use("/webhooks", express.json({ limit: "16kb" }));
   app.post(
     "/webhooks/subscriptions",
@@ -964,12 +964,12 @@ export function buildApp(
     }),
   );
 
-  // ── 404 ──────────────────────────────────────────────────────────────────
+  // â”€â”€ 404 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   app.use((_req, res) => {
     res.status(404).json({ error: "not found" });
   });
 
-  // ── Error handler ────────────────────────────────────────────────────────
+  // â”€â”€ Error handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error("[indexer/api] unhandled error:", err);
     res.status(500).json({ error: "internal server error" });
